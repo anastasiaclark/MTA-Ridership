@@ -2,8 +2,8 @@
 
 '''This script scrapes the ridership data from MTA's website and
 combines it with the previos ridership data stored at GIS lab.
-Before running, change the path to the data on line 100 (if reading excel format) 
-or 101 (if reading csv fomrat)'''
+Before running, change the path to the old data on line 124 (if reading excel format) 
+or 127 (if reading csv fomrat)'''
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -33,10 +33,10 @@ if not os.path.exists('updates/{}'.format(year)):
 
 for url in [url0, url1, url2]:
     r = requests.get(url)
-    print(r.encoding)  # check encoding
+    #print(r.encoding)  # check encoding
     data = r.text
     soup = BeautifulSoup(data, 'lxml')
-    print(soup.find('h1').text.strip())  # table title
+    print('Scarping ', soup.find('h1').text.strip())  # table title
     name_out = soup.find('h1').text.strip() + '.csv'
     table = soup.find('table', id="subway")
     rows = table.find_all('tr', attrs={'class': None})
@@ -105,20 +105,27 @@ for url in [url0, url1, url2]:
     df.rename(columns=new_names_d, inplace=True)
     combined.append(df)
 
+for table in combined:
+    # station names are not unique; make a unique column for joining them together
+    table['join_id']=table['Station (alphabetical by borough)']+table['trains']
+    
 # merge all the tables in the combined list; drop repeating columns;rename to match the format
-updates = reduce(lambda left, right: pd.merge(left, right, left_on='Station (alphabetical by borough)', 
-                                              right_on='Station (alphabetical by borough)'), combined)
+updates = reduce(lambda left, right: pd.merge(left, right, left_on='join_id', 
+                                              right_on='join_id'), combined)
 
 updates = updates.drop(
-    ['trains', 'trains_y'], 1)
-updates.rename(columns={'Station (alphabetical by borough)': 'complex_nm', 'trains_x': 'trains'}, inplace=True)
+    ['Station (alphabetical by borough)', 'Station (alphabetical by borough)_y',
+     'join_id', 'trains', 'trains_y'], 1)
+                
+updates.rename(columns={'Station (alphabetical by borough)_x': 'complex_nm', 'trains_x': 'trains'}, inplace=True)
 updates.to_csv('updates/{}/combined_ridership{}.csv'.format(year, year))
 
 # read-in old ridership,create a subset of non-overlapping columns; create unique id to do table join and join with the scraped updates
 old = pd.read_excel('/Users/anastasiaclark/MyStaff/Git_Work/MTA-Ridership/updates/2017/updates_july2017.xls',
-                    sheet_name='export', index_col=0)  # change this
+                    sheet_name='export', index_col=0)  # change this to point to the present file that will be updated
+
 # old=pd.read_csv(r'S:/LibShare/Shared/Divisions/Graduate/GEODATA/MASS_Transit/mta_ridership/updates/2017/updates_may2017.csv',encoding = 'ISO-8859-1',index_col=0)## change this
-cols_overlap = [c for c in updates.columns if c in old.columns]  ## find overlapiing columns
+cols_overlap = [c for c in updates.columns if c in old.columns]  # find overlapiing columns
 start_of_overlap = 'tot' + min(
     [c[0] for c in [re.findall(r'\d{4}', i) for i in cols_overlap] if c != []])  # common columns to both tables
 keep_cols = [c for c in old.columns if c not in cols_overlap]  # non-overlapping columns from old table to keep
