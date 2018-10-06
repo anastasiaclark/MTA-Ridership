@@ -45,29 +45,36 @@ for url in [url0, url1, url2]:
     col_names.insert(8, '% change')
     col_names.insert(1, 'trains')
     table_rows = []
-    for row in rows[2:]:
-        trains = []
-        subway_obj = row.find_all('img')
-        if subway_obj:
-            subways = [str(i) for i in subway_obj]
-            for i in subways:
-                train_match = re.search(r'(\w\s|\d\s)subway', i)
-                if train_match:
-                    train = train_match.group().split(' subway')[0]
-                    trains.append(train)
-                else:
-                    train_match = re.search(r'(\w|\d).png', i)
-                    if train_match:
-                        trains.append(train_match.group().split('.png')[
-                                          0])  # in one of the links 2 train is empty in alt= pattern;
-            trainst_str = ' '.join(trains)  # use image of the train service instead
-        else:
-            trainst_str = 'None'
+    for row in rows[1:]:# get rows from header down
         cells = row.findAll('td')
         table_row = [" ".join(c.get_text().strip('\t\n\r').split()) for c in
                      cells]  # removes more than one space in between strings
-        table_row.insert(1, trainst_str)
-        table_rows.append(table_row)
+        if table_row is False:
+            pass # in 2018 the table structure has sliglty changed (thus check to start from first non-empty row after the header)
+        
+        else:
+            trains = []
+            subway_obj = row.find_all('img')
+            if subway_obj:
+                subways = [str(i) for i in subway_obj]
+                for i in subways:
+                    train_match = re.search(r'(\w\s|\d\s)subway', i)
+                    if train_match:
+                        train = train_match.group().split(' subway')[0]
+                        trains.append(train)
+                    else:
+                        train_match = re.search(r'(\w|\d).png', i)
+                        if train_match:
+                            trains.append(train_match.group().split('.png')[
+                                              0])  # in one of the links 2 train is empty in alt= pattern;
+                trainst_str = ' '.join(trains)  # use image of the train service instead
+            else:
+                trainst_str = 'None'    
+            cells = row.findAll('td')
+            table_row = [" ".join(c.get_text().strip('\t\n\r').split()) for c in
+                         cells]  # removes more than one space in between strings
+            table_row.insert(1, trainst_str)
+            table_rows.append(table_row)
     df = pd.DataFrame(data=table_rows, columns=col_names)
 
     for col in df.columns:
@@ -99,10 +106,12 @@ for url in [url0, url1, url2]:
     combined.append(df)
 
 # merge all the tables in the combined list; drop repeating columns;rename to match the format
-updates = reduce(lambda left, right: pd.merge(left, right, left_index=True, right_index=True), combined)
+updates = reduce(lambda left, right: pd.merge(left, right, left_on='Station (alphabetical by borough)', 
+                                              right_on='Station (alphabetical by borough)'), combined)
+
 updates = updates.drop(
-    ['Station (alphabetical by borough)', 'trains', 'Station (alphabetical by borough)_y', 'trains_y'], 1)
-updates.rename(columns={'Station (alphabetical by borough)_x': 'complex_nm', 'trains_x': 'trains'}, inplace=True)
+    ['trains', 'trains_y'], 1)
+updates.rename(columns={'Station (alphabetical by borough)': 'complex_nm', 'trains_x': 'trains'}, inplace=True)
 updates.to_csv('updates/{}/combined_ridership{}.csv'.format(year, year))
 
 # read-in old ridership,create a subset of non-overlapping columns; create unique id to do table join and join with the scraped updates
