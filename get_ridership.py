@@ -3,7 +3,7 @@
 '''This script scrapes the ridership data from MTA's website and
 combines it with the previos ridership data stored at GIS lab.
 Before running, change the path to the old data on line 124 (if reading excel format) 
-or 127 (if reading csv fomrat)'''
+or 127 (if reading csv format)'''
 
 import pandas as pd
 from bs4 import BeautifulSoup
