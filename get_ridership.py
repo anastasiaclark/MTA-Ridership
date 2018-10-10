@@ -11,8 +11,8 @@ import requests, re, os
 from functools import reduce
 
 url0 = 'http://web.mta.info/nyct/facts/ridership/ridership_sub_annual.htm'
-url1 = 'http://web.mta.info/nyct/facts/ridership/ridership_sub.htm/robots.txt'
-url2 = 'http://web.mta.info/nyct/facts/ridership/ridership_sub_weekend.htm/robots.txt'
+url1 = 'http://web.mta.info/nyct/facts/ridership/ridership_sub.htm'
+url2 = 'http://web.mta.info/nyct/facts/ridership/ridership_sub_weekend.htm'
 combined = []  # this list will hold all the tables scraped from the above links
 year = input('Type in the year: ')  # will be used to name folder
 month = input('Type in first three letters of the month: ')  # will be used to name csv of updates scraped from the web
@@ -26,6 +26,9 @@ def remove_comma(col):
 def clean_station_names(col):
     clean = col.replace(u'Â', '').replace(')', '').strip()  # ascii character that throws an error
     return clean
+
+def order_train_column(col):
+    return ' '.join(sorted([s.upper() for s in col.split(' ')]))
 
 
 if not os.path.exists('updates/{}'.format(year)):
@@ -105,13 +108,15 @@ for url in [url0, url1, url2]:
     df.rename(columns=new_names_d, inplace=True)
     combined.append(df)
 
+
 for table in combined:
+    table['trains']=table['trains'].apply(lambda x: order_train_column(x))
     # station names are not unique; make a unique column for joining them together
     table['join_id']=table['Station (alphabetical by borough)']+table['trains']
     
 # merge all the tables in the combined list; drop repeating columns;rename to match the format
 updates = reduce(lambda left, right: pd.merge(left, right, left_on='join_id', 
-                                              right_on='join_id'), combined)
+                                              right_on='join_id', how='outer'), combined)
 
 updates = updates.drop(
     ['Station (alphabetical by borough)', 'Station (alphabetical by borough)_y',
