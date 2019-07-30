@@ -4,10 +4,8 @@
 combines it with the previous ridership data stored at GIS lab.
 '''
 
-import logging
 from functools import reduce
 
-import numpy as np
 import os
 import pandas as pd
 import re
@@ -31,8 +29,7 @@ old = pd.read_excel (previous_file,
                      sheet_name="export",
                      index_col=0, )
 
-# old=pd.read_csv(r'S:/LibShare/Shared/Divisions/Graduate/GEODATA/MASS_Transit/mta_ridership/updates/2017
-# /updates_may2017.csv',encoding = 'ISO-8859-1',index_col=0)## change this
+# old=pd.read_csv(r'S:/LibShare/Shared/Divisions/Graduate/GEODATA/MASS_Transit/mta_ridership/updates/2017/updates_may2017.csv',encoding = 'ISO-8859-1',index_col=0)## change this
 
 # urls for MTA's Annual, Weekday and Weekend ridership data
 url0 = "http://web.mta.info/nyct/facts/ridership/ridership_sub_annual.htm"
@@ -71,13 +68,13 @@ if not os.path.exists ("updates/{}".format (year)):
     os.makedirs ("updates/{}".format (year))
 
 
-def scrape_ridership_data(url):
-    """Scrape ridership data from MTA's website and format it into a neat DataFrame
+def scrape_rdiership_data(url):
+    '''Scrape ridership data from MTA's website and format it into a neat DataFrame
     Params:
-        url (str): the website url
-    Returns:
+        url (str): the webiste url
+    Retirns:
         df (DataFrame): pandas DataFrame with ridership data
-    """
+    '''
 
     try:
         r = requests.get (url)
@@ -118,14 +115,14 @@ def scrape_ridership_data(url):
                                     train_match.group ().split (".png")[0]
                                 )  # in one of the links 2 train is empty in alt= pattern;
 
-                    trains_str = " ".join (trains)  # use image of the train service instead
+                    trainst_str = " ".join (trains)  # use image of the train service instead
                 else:
-                    trains_str = "None"
+                    trainst_str = "None"
                 cells = row.findAll ("td")
                 table_row = [
                     " ".join (c.get_text ().strip ("\t\n\r").split ()) for c in cells
                 ]  # removes more than one space in between strings
-                table_row.insert (1, trains_str)
+                table_row.insert (1, trainst_str)
                 table_rows.append (table_row)
         df = pd.DataFrame (data=table_rows, columns=col_names)
 
@@ -155,8 +152,8 @@ def scrape_ridership_data(url):
             "Systemwide Adjustment",
             "System Total",
         ]
-        mask = df["Station (alphabetical by borough)"].isin (totals)  # boolean mask
-        df = df[~mask].copy ()  # delete summary rows
+        mask = df["Station (alphabetical by borough)"].isin (totals)  ## boolean mask
+        df = df[~mask]  # delete summary rows
 
         # rename numerical columns; Ex.2010 into tot2010 and avwkdy10
         # using regex, find columns with year in them
@@ -189,8 +186,8 @@ def scrape_ridership_data(url):
 
 # function call in a loop
 combined = []  # this list will hold all the tables scraped from the above links
-for url in [url0, url1, url2]:
-    df = scrape_ridership_data (url)
+for url in urls:
+    df = scrape_rdiership_data (url)
     combined.append (df)
 
 # merge all the tables in the combined list; drop repeating columns; rename to match the format
@@ -225,7 +222,7 @@ updates.rename (
 )
 updates.to_csv (f"updates/{year}/combined_ridership{year}.csv", index=False)
 
-# create a subset of non-overlapping columns;
+# create a subset of non-overlapping columns; 
 # create unique id to do table join and join with the scraped updates
 
 cols_overlap = [

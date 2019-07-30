@@ -1,0 +1,5 @@
+2019-07-30 08:33:59,043 - __main__ - ERROR - Unexpected exception occurred while scraping
+Traceback (most recent call last):
+  File "/Users/anastasiaclark/MyStaff/Git_Work/MTA-Ridership/get_ridership.py", line 169, in scrape_ridership_data
+    df = df.replace (to_replace=[None, "None", ""], value=np.nan).dropna (how="all")
+NameError: name 'np' is not defined
